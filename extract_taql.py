@@ -21,7 +21,7 @@ def form_baselines(antennas):
 Read in MS file and extract the required columns into numpy arrays.
 '''
 print '[CVE] Reading in file...'
-msfile = ct.table('TESTVIS.ms')
+msfile = ct.table('TESTVIS.ms', readonly=False)
 
 print '[CVE] Forming baselines...'
 ANTENNA1 = msfile.getcol('ANTENNA1')
@@ -29,7 +29,7 @@ ANTENNA2 = msfile.getcol('ANTENNA2')
 
 ANTENNAS = set(ANTENNA1).union(set(ANTENNA2))
 baselines = form_baselines(ANTENNAS)
-
+'''
 # Extract the data for each baseline.
 print '[CVE] Extracting visibilities per baseline...'
 progress = 0; end = len(baselines); printed = False
@@ -53,3 +53,20 @@ for i,j in baselines:
     with open('visibilities.txt', 'ab') as f:
         np.savetxt(f, zip(antenna1, antenna2, data_real, data_imag))
     progress += 1
+'''
+print '[CVE] Calculating statistics...'
+real, imag = np.loadtxt('visibilities.txt', usecols=(2,3), unpack=True)
+mean_re = real.mean(); mean_im = imag.mean()
+std_re = real.std(); std_im = imag.std()
+
+sig = [std_re, std_im]
+
+print 'Re mean: ', real.mean()
+print 'Re std: ', real.std()
+print 'Im mean: ', imag.mean()
+print 'Im std: ', imag.std()
+
+print '[CVE] Writing back to MS file...'
+ct.taql('UPDATE $msfile SET SIGMA=$sig')
+
+print '[CVE] Finished.'
