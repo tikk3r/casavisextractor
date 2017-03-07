@@ -48,7 +48,7 @@ for i,j in baselines:
 
     n = len(data_avg_pol_flat)
     antenna1 = np.zeros(n); antenna1.fill(i)
-    antenna2 = np.zeros(n); antenna1.fill(j)
+    antenna2 = np.zeros(n); antenna2.fill(j)
     # Save data to file.
     with open('visibilities_test.txt', 'ab') as f:
         np.savetxt(f, zip(antenna1, antenna2, data_real, data_imag))
