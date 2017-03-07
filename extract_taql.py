@@ -29,11 +29,11 @@ ANTENNA2 = msfile.getcol('ANTENNA2')
 
 ANTENNAS = set(ANTENNA1).union(set(ANTENNA2))
 baselines = form_baselines(ANTENNAS)
-'''
+
 # Extract the data for each baseline.
 print '[CVE] Extracting visibilities per baseline...'
 progress = 0; end = len(baselines); printed = False
-f = open('visibilities.txt', 'wb'); f.close()
+f = open('visibilities_test.txt', 'wb'); f.close()
 for i,j in baselines:
     p = int(progress / end * 100)
     if ((progress % 10) == 0):
@@ -50,12 +50,12 @@ for i,j in baselines:
     antenna1 = np.zeros(n); antenna1.fill(i)
     antenna2 = np.zeros(n); antenna1.fill(j)
     # Save data to file.
-    with open('visibilities.txt', 'ab') as f:
+    with open('visibilities_test.txt', 'ab') as f:
         np.savetxt(f, zip(antenna1, antenna2, data_real, data_imag))
     progress += 1
-'''
+
 print '[CVE] Calculating statistics...'
-real, imag = np.loadtxt('visibilities.txt', usecols=(2,3), unpack=True)
+real, imag = np.loadtxt('visibilities_test.txt', usecols=(2,3), unpack=True)
 mean_re = real.mean(); mean_im = imag.mean()
 std_re = real.std(); std_im = imag.std()
 
