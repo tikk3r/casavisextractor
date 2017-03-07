@@ -29,7 +29,7 @@ Read in MS file and extract the required columns into numpy arrays.
 print '[CVE] Reading in file...'
 #msfile = ct.table('target_K_30s_03.ms', readonly=False)
 msfile = ct.table('TESTVIS.ms', readonly=False)
-
+'''
 print '[CVE] Forming baselines...'
 ANTENNA1 = msfile.getcol('ANTENNA1')
 ANTENNA2 = msfile.getcol('ANTENNA2')
@@ -59,11 +59,11 @@ for i,j in baselines:
     with open('visibilities.txt', 'ab') as f:
         np.savetxt(f, zip(antenna1, antenna2, data_real, data_imag))
     progress += 1
-
+'''
 print '[CVE] Loading visibilties...'
-print os.path.abspath('./visibilities.txt')
-print os.path.exists(os.path.abspath('./visibilities.txt'))
-ch = subprocess.check_output('wc -l ./visibilities.txt', shell=True)
+print os.path.abspath('./TESTVISIBILITIES.txt')
+print os.path.exists(os.path.abspath('./TESTVISIBILITIES.txt'))
+ch = subprocess.check_output('wc -l ./TESTVISIBILITIES.txt', shell=True)
 ch = int(ch.split(' ')[0])
 chunksize = 1000000
 chunks = int(math.ceil(ch / chunksize))
@@ -71,21 +71,25 @@ chunks = int(math.ceil(ch / chunksize))
 print '[CVE] Calculating statistics...'
 print 'Using chuncksize: ', chunksize
 print 'Using %d chuncks.' % chunks
-
 ravg = []; rvar = []
 iavg = []; ivar = []
+
 for i in xrange(chunks):
     print 'Processing chunck %d/%d...' % (i+1, chunks)
-    with open('visibilities.txt') as f:
+    with open('TESTVISIBILITIES.txt') as f:
+        print 'Reading lines:', i*chunksize, (i+1)*chunksize
         line = np.genfromtxt(islice(f, i*chunksize, (i+1)*chunksize))
+        print line[0:10]
         real, imag = line[:,2], line[:,3]
         ravg.append(real.mean()); rvar.append(real.var())
         iavg.append(imag.mean()); ivar.append(imag.var())
-
+        break
+print len(ravg), len(iavg), len(rvar), len(ivar)
 ravg = np.asarray(ravg)
 iavg = np.asarray(iavg)
 rvar = np.asarray(rvar)
 ivar = np.asarray(ivar)
+print ravg.sum() / len(ravg)
 mean_re = ravg.mean(); mean_im = iavg.mean()
 std_re = np.sqrt(rvar.mean()); std_im = np.sqrt(ivar.mean())
 
@@ -96,6 +100,8 @@ print 'Re std: ', std_re
 print 'Im mean: ', mean_im
 print 'Im std: ', std_im
 
+import sys
+sys.exit()
 print '[CVE] Writing back to MS file...'
 #ct.taql('UPDATE $msfile SET SIGMA=$sig')
 
