@@ -55,7 +55,7 @@ for i,j in baselines:
     progress += 1
 
 print '[CVE] Calculating statistics...'
-real, imag = np.loadtxt('visibilities.txt', usecols=(2,3), unpack=True)
+real, imag = np.loadtxt('visibilities_test.txt', usecols=(2,3), unpack=True)
 mean_re = real.mean(); mean_im = imag.mean()
 std_re = real.std(); std_im = imag.std()
 
