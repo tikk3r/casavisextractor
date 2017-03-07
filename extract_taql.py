@@ -29,7 +29,7 @@ Read in MS file and extract the required columns into numpy arrays.
 print '[CVE] Reading in file...'
 #msfile = ct.table('target_K_30s_03.ms', readonly=False)
 msfile = ct.table('TESTVIS.ms', readonly=False)
-'''
+
 print '[CVE] Forming baselines...'
 ANTENNA1 = msfile.getcol('ANTENNA1')
 ANTENNA2 = msfile.getcol('ANTENNA2')
@@ -59,11 +59,11 @@ for i,j in baselines:
     with open('visibilities.txt', 'ab') as f:
         np.savetxt(f, zip(antenna1, antenna2, data_real, data_imag))
     progress += 1
-'''
+
 print '[CVE] Loading visibilties...'
-print os.path.abspath('./TESTVISIBILITIES.txt')
-print os.path.exists(os.path.abspath('./TESTVISIBILITIES.txt'))
-ch = subprocess.check_output('wc -l ./TESTVISIBILITIES.txt', shell=True)
+print os.path.abspath('./visibilities.txt')
+print os.path.exists(os.path.abspath('./visibilities.txt'))
+ch = subprocess.check_output('wc -l ./visibilities.txt', shell=True)
 ch = int(ch.split(' ')[0])
 chunksize = 1000000
 chunks = int(math.ceil(ch / chunksize))
@@ -76,14 +76,13 @@ iavg = []; ivar = []
 
 for i in xrange(chunks):
     print 'Processing chunck %d/%d...' % (i+1, chunks)
-    with open('TESTVISIBILITIES.txt') as f:
+    with open('visibilities.txt') as f:
         print 'Reading lines:', i*chunksize, (i+1)*chunksize
         line = np.genfromtxt(islice(f, i*chunksize, (i+1)*chunksize))
-        print line[0:10]
         real, imag = line[:,2], line[:,3]
         ravg.append(real.mean()); rvar.append(real.var())
         iavg.append(imag.mean()); ivar.append(imag.var())
-        break
+
 print len(ravg), len(iavg), len(rvar), len(ivar)
 ravg = np.asarray(ravg)
 iavg = np.asarray(iavg)
