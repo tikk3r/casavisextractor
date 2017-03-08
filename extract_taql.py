@@ -7,6 +7,7 @@ import numpy as np
 import math
 import subprocess
 import os
+import sys
 
 def form_baselines(antennas):
     ''' Calculate all possible baselines.
@@ -58,8 +59,12 @@ except:
 progress = 0; end = len(baselines); printed = False
 for i,j in baselines:
     p = int(progress / end * 100)
-    if ((progress % 10) == 0):
-        print 'Progress: %d%%' % (p)
+    if ((p % 10) == 0) and not printed:
+        print '%d%%' % (p),
+        printed = True
+    elif printed and (p%10 == 9):
+        printed = False
+    sys.stdout.flush()
     # Select wanted columns (possibly slightly redundant step).
     baseline = ct.taql('SELECT UVW,DATA FROM $msfile WHERE ANTENNA1=$i AND ANTENNA2=$j')
     data = baseline.getcol('DATA')
@@ -80,16 +85,26 @@ for i,j in baselines:
         subdata = subdata.flatten()
         data_real = subdata.real
         data_imag = subdata.imag
+        # Calculate standard deviation.
+        stdr = data_real.std()
+        stdi = data_imag.std()
+        std_real = np.zeros(len(data_real)); std_real.fill(stdr)
+        std_imag = np.zeros(len(data_imag)); std_imag.fill(stdi)
+
+        #print 'Mean Re(data): ', data_real.mean()
+        #print 'Mean Im(data): ', data_imag.mean()
+        #print 'Std Re(data); ', data_real.std()
+        #print 'Std Im(data); ', data_imag.std()
 
         n = len(subdata)
         antenna1 = np.zeros(n); antenna1.fill(i)
         antenna2 = np.zeros(n); antenna2.fill(j)
         # Save data to file.
-        FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag' % (i, j, nu.shape[0])
+        FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (i, j, nu.shape[0])
         with open('visibilities/baseline%d-%d_corr%.2d.txt'%(i,j,corr), 'wb') as f:
-            np.savetxt(f, zip(u, v, w, nu, data_real, data_imag), header=FILEHEADER)
+            np.savetxt(f, zip(u, v, w, nu, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
     progress += 1
-
+print '100%'
 '''
 print '[CVE] Loading visibilties...'
 print os.path.abspath('./visibilities.txt')
@@ -135,4 +150,4 @@ sys.exit()
 print '[CVE] Writing back to MS file...'
 #ct.taql('UPDATE $msfile SET SIGMA=$sig')
 '''
-print '[CVE] Finished.'
+print '[CVE] Finished'
