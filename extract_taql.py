@@ -40,9 +40,12 @@ ANTENNA2 = msfile.getcol('ANTENNA2')
 ANTENNAS = set(ANTENNA1).union(set(ANTENNA2))
 baselines = form_baselines(ANTENNAS)
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 # Extract the data for each baseline.
 =======
+=======
+>>>>>>> chunk_baseline
 print 'Formed %d baselines.' % len(baselines)
 
 '''
@@ -53,6 +56,9 @@ own file.
 The columns will have the uvw coordinates, channel frequency, real and imaginary parts of the
 visibilities and their corresponding errors.
 '''
+<<<<<<< HEAD
+>>>>>>> chunk_baseline
+=======
 >>>>>>> chunk_baseline
 print '[CVE] Extracting visibilities per baseline...'
 try:
@@ -62,7 +68,10 @@ except:
 
 progress = 0; end = len(baselines); printed = False
 <<<<<<< HEAD
+<<<<<<< HEAD
 f = open('visibilities_test.txt', 'wb'); f.close()
+=======
+>>>>>>> chunk_baseline
 =======
 >>>>>>> chunk_baseline
 for i,j in baselines:
@@ -91,6 +100,7 @@ for i,j in baselines:
         data_real = subdata.real
         data_imag = subdata.imag
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     n = len(data_avg_pol_flat)
     antenna1 = np.zeros(n); antenna1.fill(i)
@@ -124,6 +134,27 @@ chunksize = 1000000
 chunks = int(math.ceil(ch / chunksize))
 
 print '[CVE] Calculating statistics...'
+=======
+        n = len(subdata)
+        antenna1 = np.zeros(n); antenna1.fill(i)
+        antenna2 = np.zeros(n); antenna2.fill(j)
+        # Save data to file.
+        FILEHEADER = 'Baseline: %d-%d\nu [m], v [m], w [m], frequency [GHz], real, imag' % (i, j)
+        with open('visibilities/baseline%d-%d_corr%.2d.txt'%(i,j,corr), 'wb') as f:
+            np.savetxt(f, zip(u, v, w, nu, data_real, data_imag), header=FILEHEADER)
+    progress += 1
+
+'''
+print '[CVE] Loading visibilties...'
+print os.path.abspath('./visibilities.txt')
+print os.path.exists(os.path.abspath('./visibilities.txt'))
+ch = subprocess.check_output('wc -l ./visibilities.txt', shell=True)
+ch = int(ch.split(' ')[0])
+chunksize = 1000000
+chunks = int(math.ceil(ch / chunksize))
+
+print '[CVE] Calculating statistics...'
+>>>>>>> chunk_baseline
 print 'Using chuncksize: ', chunksize
 print 'Using %d chuncks.' % chunks
 ravg = []; rvar = []
@@ -146,6 +177,9 @@ ivar = np.asarray(ivar)
 print ravg.sum() / len(ravg)
 mean_re = ravg.mean(); mean_im = iavg.mean()
 std_re = np.sqrt(rvar.mean()); std_im = np.sqrt(ivar.mean())
+<<<<<<< HEAD
+>>>>>>> chunk_baseline
+=======
 >>>>>>> chunk_baseline
 
 sig = [std_re, std_im]
