@@ -24,42 +24,74 @@ def form_baselines(antennas):
     return baselines
 
 '''
-Read in MS file and extract the required columns into numpy arrays.
+Read in MS file and create table object.
 '''
 print '[CVE] Reading in file...'
-#msfile = ct.table('target_K_30s_03.ms', readonly=False)
-msfile = ct.table('TESTVIS.ms', readonly=False)
+filename = 'TESTVIS.ms'
+msfile = ct.table(filename, readonly=False)
 
+'''
+Calculate the number of baselines present in the measurement set.
+'''
 print '[CVE] Forming baselines...'
 ANTENNA1 = msfile.getcol('ANTENNA1')
 ANTENNA2 = msfile.getcol('ANTENNA2')
 
 ANTENNAS = set(ANTENNA1).union(set(ANTENNA2))
 baselines = form_baselines(ANTENNAS)
-# Extract the data for each baseline.
+print 'Formed %d baselines.' % len(baselines)
+
+'''
+Extract the visibilities per baseline. The measurement set is accessed using TaQL extracting
+the columns into numpy arrays.
+The final data is stored in regular text files, with each baseline and correlation having its
+own file.
+The columns will have the uvw coordinates, channel frequency, real and imaginary parts of the
+visibilities and their corresponding errors.
+'''
 print '[CVE] Extracting visibilities per baseline...'
+try:
+    os.mkdir('visibilities')
+except:
+    pass
+
 progress = 0; end = len(baselines); printed = False
-f = open('visibilities.txt', 'wb'); f.close()
 for i,j in baselines:
     p = int(progress / end * 100)
     if ((progress % 10) == 0):
         print 'Progress: %d%%' % (p)
-    bl = ct.taql('SELECT DATA FROM $msfile WHERE ANTENNA1=$i AND ANTENNA2=$j')
-    data = bl.getcol('DATA')
-    # Average polarizations together.
-    data_avg_pol = np.average(data, axis=2)
-    data_avg_pol_flat = data_avg_pol.flatten()
-    data_real = data_avg_pol_flat.real
-    data_imag = data_avg_pol_flat.imag
+    # Select wanted columns (possibly slightly redundant step).
+    baseline = ct.taql('SELECT UVW,DATA FROM $msfile WHERE ANTENNA1=$i AND ANTENNA2=$j')
+    data = baseline.getcol('DATA')
+    uvw = baseline.getcol('UVW')
+    # Select the spectral window keyword from the main table.
+    spws = ct.taql('SELECT CHAN_FREQ FROM %s::SPECTRAL_WINDOW'%(filename))
+    # Frequencies corresponding to each channel.
+    frequencies = spws.getcol('CHAN_FREQ')
+    nu = frequencies.flatten() * 1e9
+    # u,v,w coordinates for each baseline in meters.
+    u, v, w = uvw[...,0], uvw[...,1], uvw[...,2]
+    # Determine the number of correlations present.
+    correlations = data.shape[-1]
+    # Loop over every correlation.
+    for corr in range(correlations):
+        #print 'Processing correlation %d/%d' % (corr+1, correlations)
+        # Select the correlation, specified by the last index.
+        subdata = data[...,corr]
+        subdata = subdata.flatten()
+        data_real = subdata.real
+        data_imag = subdata.imag
 
-    n = len(data_avg_pol_flat)
-    antenna1 = np.zeros(n); antenna1.fill(i)
-    antenna2 = np.zeros(n); antenna2.fill(j)
-    # Save data to file.
-    with open('visibilities.txt', 'ab') as f:
-        np.savetxt(f, zip(antenna1, antenna2, data_real, data_imag))
+        n = len(subdata)
+        antenna1 = np.zeros(n); antenna1.fill(i)
+        antenna2 = np.zeros(n); antenna2.fill(j)
+        # Save data to file.
+        FILEHEADER = 'Baseline: %d-%d\nu [m], v [m], w [m], frequency [GHz], real, imag' % (i, j)
+        with open('visibilities/baseline%d-%d_corr%.2d.txt'%(i,j,corr), 'wb') as f:
+            np.savetxt(f, zip(u, v, w, nu, data_real, data_imag), header=FILEHEADER)
     progress += 1
 
+'''
 print '[CVE] Loading visibilties...'
 print os.path.abspath('./visibilities.txt')
 print os.path.exists(os.path.abspath('./visibilities.txt'))
@@ -103,5 +135,5 @@ import sys
 sys.exit()
 print '[CVE] Writing back to MS file...'
 #ct.taql('UPDATE $msfile SET SIGMA=$sig')
-
+'''
 print '[CVE] Finished.'
