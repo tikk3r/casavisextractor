@@ -75,7 +75,6 @@ for i,j in baselines:
     correlations = data.shape[-1]
     # Loop over every correlation.
     for corr in range(correlations):
-        #print 'Processing correlation %d/%d' % (corr+1, correlations)
         # Select the correlation, specified by the last index.
         subdata = data[...,corr]
         subdata = subdata.flatten()
