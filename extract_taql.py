@@ -101,13 +101,14 @@ for i,j in baselines:
         #with open('visibilities/baseline%.2d-%.2d_corr%.2d.txt'%(i,j,corr), 'ab') as f:
         with open('visibilities/visibilities.txt', 'ab') as f:
             np.savetxt(f, zip(u, v, w, nu, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
-    # Write back the sigmas to the MS file.
+    # Write back errors and weights to the SIGMA and WEIGHT columns of the MS file.
     sigmas = np.asarray(sigmas)
+    weights = np.asarray(sigmas) ** -2
     ct.taql('UPDATE $msfile SET SIGMA=$sigmas')
+    ct.taql('UPDATE $msfile SET WEIGHTS=$weights')
     progress += 1
 print '100%'
 
 print '[CVE] Closing MS file...'
-#ct.taql('UPDATE $msfile SET SIGMA=$sig')
 msfile.close()
 print '[CVE] Finished'
