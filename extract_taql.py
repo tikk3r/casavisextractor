@@ -79,7 +79,7 @@ for i,j in baselines:
     # Determine the number of correlations present.
     correlations = data.shape[-1]
     # Store the sigmas to write back to the MS file here.
-    sigmas = []
+    sigma = []
     # Loop over every correlation.
     for corr in range(correlations):
         # Select the correlation, specified by the last index.
@@ -93,8 +93,9 @@ for i,j in baselines:
         std_real = np.zeros(len(data_real)); std_real.fill(stdr)
         std_imag = np.zeros(len(data_imag)); std_imag.fill(stdi)
         # The MS file only has one sigma per correlation, so take the largest.
-        std = np.asarray([r if r > i else i for r,i in zip(std_real, std_imag)])
-        sigmas.append(std)
+        #std = np.asarray([r if r > i else i for r,i in zip(std_real, std_imag)])
+        std = max(stdr, stdi)
+        sigma.append(std)
 
         # Save data to file.
         FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (i, j, nu.shape[0])
@@ -102,10 +103,10 @@ for i,j in baselines:
         with open('visibilities/visibilities.txt', 'ab') as f:
             np.savetxt(f, zip(u, v, w, nu, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
     # Write back errors and weights to the SIGMA and WEIGHT columns of the MS file.
-    sigmas = np.asarray(sigmas)
-    weights = np.asarray(sigmas) ** -2
-    ct.taql('UPDATE $msfile SET SIGMA=$sigmas')
-    ct.taql('UPDATE $msfile SET WEIGHTS=$weights')
+    sigmas = np.asarray(sigma)
+    weights = list(sigmas ** -2)
+    ct.taql('UPDATE $msfile SET SIGMA=$sigma')
+    ct.taql('UPDATE $msfile SET WEIGHT=$weights')
     progress += 1
 print '100%'
 
