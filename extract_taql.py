@@ -28,7 +28,7 @@ def form_baselines(antennas):
 Read in MS file and create table object.
 '''
 print '[CVE] Reading in file...'
-filename = 'TESTVIS.ms'
+filename = sys.argv[1]#'TESTVIS.ms'
 msfile = ct.table(filename, readonly=False)
 
 '''
@@ -73,7 +73,7 @@ for i,j in baselines:
     spws = ct.taql('SELECT CHAN_FREQ FROM %s::SPECTRAL_WINDOW'%(filename))
     # Frequencies corresponding to each channel.
     frequencies = spws.getcol('CHAN_FREQ')
-    nu = frequencies.flatten() * 1e-9
+    frequencies_flat_ghz = frequencies.flatten() * 1e-9
     # u,v,w coordinates for each baseline in meters.
     u, v, w = uvw[...,0], uvw[...,1], uvw[...,2]
     # Determine the number of correlations present.
@@ -82,6 +82,8 @@ for i,j in baselines:
     sigma = []
     # Loop over every correlation.
     for corr in range(correlations):
+        # Calculate channel frequencies.
+        nu = frequencies_flat_ghz[corr*64:(corr+1)*64]
         # Select the correlation, specified by the last index.
         subdata = data[...,corr]
         subdata = subdata.flatten()
@@ -98,7 +100,7 @@ for i,j in baselines:
         sigma.append(std)
 
         # Save data to file.
-        FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (i, j, nu.shape[0])
+        FILEHEADER = 'Baseline: %d-%d\nSpectral Window: %d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (i, j, corr, nu.shape[0])
         #with open('visibilities/baseline%.2d-%.2d_corr%.2d.txt'%(i,j,corr), 'ab') as f:
         with open('visibilities/visibilities.txt', 'ab') as f:
             np.savetxt(f, zip(u, v, w, nu, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
