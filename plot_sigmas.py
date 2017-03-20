@@ -1,14 +1,25 @@
 from matplotlib.pyplot import figure, show
 import numpy as np
 
+real = np.loadtxt('./visibilities/visibilities.txt', usecols=(4,), unpack=True)
+imag = np.loadtxt('./visibilities/visibilities.txt', usecols=(5,), unpack=True)
 sigma_real = np.loadtxt('./visibilities/visibilities.txt', usecols=(6,), unpack=True)
 sigma_imag = np.loadtxt('./visibilities/visibilities.txt', usecols=(7,), unpack=True)
-fig = figure()
-ax = fig.add_subplot(211)
-ax.hist(sigma_real)
+fig = figure(figsize=(12,8), dpi=100)
+ax = fig.add_subplot(221)
+ax.hist(real)
 ax.set_title('Real', fontweight='bold')
 
-ax2 = fig.add_subplot(212)
-ax2.hist(sigma_imag)
-ax2.set_title('Imag', fontweight='bold')
+ax2 = fig.add_subplot(222)
+ax2.hist(sigma_real)
+ax2.set_title('Real $\\sigma$', fontweight='bold')
+
+ax3 = fig.add_subplot(223)
+ax3.hist(imag)
+ax3.set_title('Imag', fontweight='bold')
+
+ax4 = fig.add_subplot(224)
+ax4.hist(sigma_imag)
+ax4.set_title('Imag $\\sigma$', fontweight='bold')
+#fig.savefig('visibilities.png', dpi=400)
 show()
