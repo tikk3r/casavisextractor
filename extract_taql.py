@@ -46,7 +46,6 @@ print 'Formed %d baselines.' % len(baselines)
 polarizations = ct.taql('SELECT FROM %s::POLARIZATION'%(filename))
 correlations = polarizations.getcol('NUM_CORR')
 print 'Found %d correlations.' % correlations[0]
-sys.exit()
 
 '''
 Extract the visibilities per baseline. The measurement set is accessed using TaQL extracting
@@ -62,32 +61,30 @@ try:
 except:
     pass
 
-progress = 0; end = len(baselines); printed = False
-for k,i,j in enumerate(baselines):
-    p = int(progress / end * 100)
-    if ((p % 10) == 0) and not printed:
-        print '%d%%' % (p),
-        printed = True
-    elif printed and (p%10 == 9):
-        printed = False
-    sys.stdout.flush()
-    # Select wanted columns (possibly slightly redundant step).
-    baseline = ct.taql('SELECT UVW,DATA FROM $msfile WHERE ANTENNA1=$i AND ANTENNA2=$j')
-    data = baseline.getcol('DATA')
-    uvw = baseline.getcol('UVW')
+for corr in range(correlations):
     # Select the spectral window keyword from the main table.
     spws = ct.taql('SELECT FROM %s::SPECTRAL_WINDOW'%(filename))
     # Frequencies corresponding to each channel.
     frequencies = spws.getcol('CHAN_FREQ')
     frequencies_flat_ghz = frequencies.flatten() * 1e-9
-    # u,v,w coordinates for each baseline in meters.
-    u, v, w = uvw[...,0], uvw[...,1], uvw[...,2]
-    # Store the sigmas to write back to the MS file here.
-    sigma = []
-    # Loop over every correlation.
-    for corr in range(correlations):
-        # Calculate channel frequencies.
-        nu = frequencies_flat_ghz[corr*64:(corr+1)*64]
+    # Calculate channel frequencies.
+    nu = frequencies_flat_ghz
+
+    progress = 0; end = len(baselines); printed = False
+    for k,(i,j) in enumerate(baselines):
+        p = int(progress / end * 100)
+        if ((p % 10) == 0) and not printed:
+            print '%d%%' % (p),
+            printed = True
+        elif printed and (p%10 == 9):
+            printed = False
+        sys.stdout.flush()
+        # Select wanted columns (possibly slightly redundant step).
+        baseline = ct.taql('SELECT UVW,DATA FROM $msfile WHERE ANTENNA1=$i AND ANTENNA2=$j')
+        data = baseline.getcol('DATA')
+        uvw = baseline.getcol('UVW')
+        # u,v,w coordinates for each baseline in meters.
+        u, v, w = uvw[...,0], uvw[...,1], uvw[...,2]
         # Select the correlation, specified by the last index.
         subdata = data[...,corr]
         subdata = subdata.flatten()
@@ -96,25 +93,23 @@ for k,i,j in enumerate(baselines):
         # Calculate standard deviation.
         stdr = data_real.std()
         stdi = data_imag.std()
-        std_real = np.zeros(len(data_real)); std_real.fill(stdr)
-        std_imag = np.zeros(len(data_imag)); std_imag.fill(stdi)
+        std_real = np.zeros(len(nu)); std_real.fill(stdr)
+        std_imag = np.zeros(len(nu)); std_imag.fill(stdi)
         # The MS file only has one sigma per correlation, so take the largest.
-        #std = np.asarray([r if r > i else i for r,i in zip(std_real, std_imag)])
-        std = max(stdr, stdi)
-        sigma.append(std)
+        sigma = max(stdr, stdi)
 
         # Save data to file.
-        FILEHEADER = 'Baseline: %d-%d\nSpectral Window: %d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (i, j, corr, nu.shape[0])
+        FILEHEADER = 'Baseline: %d-%d\nCorrelation: %d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (i, j, corr, nu.shape[0])
         #with open('visibilities/baseline%.2d-%.2d_corr%.2d.txt'%(i,j,corr), 'ab') as f:
-        with open('visibilities/visibilities.txt', 'ab') as f:
+        with open('visibilities/visibilities_corr_%.2d.txt'%(corr,), 'ab') as f:
             np.savetxt(f, zip(u, v, w, nu, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
-    # Write back errors and weights to the SIGMA and WEIGHT columns of the MS file.
-    sigmas = np.asarray(sigma)
-    weights = list(sigmas ** -2)
-    ct.taql('UPDATE $msfile SET SIGMA=$sigma')
-    ct.taql('UPDATE $msfile SET WEIGHT=$weights')
-    progress += 1
-print '100%'
+        # Write back errors and weights to the SIGMA and WEIGHT columns of the MS file.
+        sigmas = np.asarray(sigma)
+        weights = sigma ** -2
+        ct.taql('UPDATE $msfile SET SIGMA[$corr]=$sigma WHERE ANTENNA1=$i AND ANTENNA2=$j')
+        ct.taql('UPDATE $msfile SET WEIGHT[$corr]=$weights WHERE ANTENNA1=$i AND ANTENNA2=$j')
+        progress += 1
+    print '100%\n'
 
 print '[CVE] Closing MS file...'
 msfile.close()
