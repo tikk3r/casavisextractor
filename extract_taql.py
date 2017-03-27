@@ -42,6 +42,12 @@ ANTENNAS = set(ANTENNA1).union(set(ANTENNA2))
 baselines = form_baselines(ANTENNAS)
 print 'Formed %d baselines.' % len(baselines)
 
+# Determine the number of correlations present.
+polarizations = ct.taql('SELECT FROM %s::POLARIZATION'%(filename))
+correlations = polarizations.getcol('NUM_CORR')
+print 'Found %d correlations.' % correlations[0]
+sys.exit()
+
 '''
 Extract the visibilities per baseline. The measurement set is accessed using TaQL extracting
 the columns into numpy arrays.
@@ -57,7 +63,7 @@ except:
     pass
 
 progress = 0; end = len(baselines); printed = False
-for i,j in baselines:
+for k,i,j in enumerate(baselines):
     p = int(progress / end * 100)
     if ((p % 10) == 0) and not printed:
         print '%d%%' % (p),
@@ -70,14 +76,12 @@ for i,j in baselines:
     data = baseline.getcol('DATA')
     uvw = baseline.getcol('UVW')
     # Select the spectral window keyword from the main table.
-    spws = ct.taql('SELECT CHAN_FREQ FROM %s::SPECTRAL_WINDOW'%(filename))
+    spws = ct.taql('SELECT FROM %s::SPECTRAL_WINDOW'%(filename))
     # Frequencies corresponding to each channel.
     frequencies = spws.getcol('CHAN_FREQ')
     frequencies_flat_ghz = frequencies.flatten() * 1e-9
     # u,v,w coordinates for each baseline in meters.
     u, v, w = uvw[...,0], uvw[...,1], uvw[...,2]
-    # Determine the number of correlations present.
-    correlations = data.shape[-1]
     # Store the sigmas to write back to the MS file here.
     sigma = []
     # Loop over every correlation.
