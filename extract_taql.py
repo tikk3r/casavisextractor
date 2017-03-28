@@ -71,10 +71,6 @@ for corr in range(correlations):
     # Calculate channel frequencies.
     nu = frequencies_flat_ghz
 
-    # Store odd and even sigmas separately temporarily in an array as [real, imaginary].
-    odd = []
-    even = []
-    
     progress = 0; end = len(baselines); printed = False
     for k,(i,j) in enumerate(baselines):
         p = int(progress / end * 100)
@@ -109,34 +105,35 @@ for corr in range(correlations):
         sigma = max(stdr, stdi) 
 
         # Subtract every first visibility from the second, i.e. 2-1, 4-3, 6-5 etc.
-        # Since k starts at 0 we start with the even iterations.
-        if not k%2:
-            # Even iterations.
-            even = np.array([data_real, data_imag])
-        else:
-            # Odd iterations.
-            odd = np.array([data_real, data_imag])
-            # Subtract the second visibilities from the first.
-            subtracted =  odd - even
-            sub_real = subtracted[0]
-            sub_imag = subtracted[1]
-            # Calculate new standard deviations.
-            stds_real = sub_real.std()
-            stds_imag = sub_imag.std()
-            # Padd the arrays and write out to file.
-            std_sub_real = np.zeros(len(nu)); std_sub_real.fill(stds_real)
-            std_sub_imag = np.zeros(len(nu)); std_sub_imag.fill(stds_imag)
-            # The subtracted visibilities.
-            with open('visibilities/visibilities_subtracted_corr_%.2d.txt'%(corr,), 'ab') as f:
-                np.savetxt(f, zip(u, v, w, nu, sub_real, sub_imag, std_sub_real, std_sub_imag), header=FILEHEADER)
-
+        i = 0
+        sub_real = []
+        sub_imag = []
+        while i < (len(data_real)//2 - 1):
+            subr = data_real[2*i+1] - data_real[2*i]
+            subi = data_imag[2*i+1] - data_imag[2*i]
+            sub_real.append(subr)
+            sub_imag.append(subi)
+            i += 1
+        sub_real = np.asarray(sub_real)
+        sub_imag = np.asarray(sub_imag)
+        # Calculate new standard deviations.
+        stds_real = sub_real.std()
+        stds_imag = sub_imag.std()
+        # Padd the arrays and write out to file.
+        std_sub_real = np.zeros(len(nu)); std_sub_real.fill(stds_real)
+        std_sub_imag = np.zeros(len(nu)); std_sub_imag.fill(stds_imag)
+        # The subtracted visibilities.
+        FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (i, j, nu.shape[0])
+        with open('visibilities/visibilities_subtracted_corr_%.2d.txt'%(corr,), 'ab') as f:
+            np.savetxt(f, zip(u, v, w, nu, sub_real, sub_imag, std_sub_real, std_sub_imag), header=FILEHEADER)
+        del sub_real
+        del sub_imag
         # Save data to files.
         # The regular data.
         FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (i, j, nu.shape[0])
         with open('visibilities/visibilities_corr_%.2d.txt'%(corr,), 'ab') as f:
             np.savetxt(f, zip(u, v, w, nu, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
         # Write back errors and weights to the SIGMA and WEIGHT columns of the MS file.
-        sigmas = np.asarray(sigma)
         weights = sigma ** -2
         ct.taql('UPDATE $msfile SET SIGMA[$corr]=$sigma WHERE ANTENNA1=$i AND ANTENNA2=$j')
         ct.taql('UPDATE $msfile SET WEIGHT[$corr]=$weights WHERE ANTENNA1=$i AND ANTENNA2=$j')
