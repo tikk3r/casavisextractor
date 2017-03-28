@@ -99,7 +99,7 @@ for corr in range(correlations):
         sigma = max(stdr, stdi)
 
         # Save data to file.
-        FILEHEADER = 'Baseline: %d-%d\nCorrelation: %d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (i, j, corr, nu.shape[0])
+        FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (i, j, corr, nu.shape[0])
         #with open('visibilities/baseline%.2d-%.2d_corr%.2d.txt'%(i,j,corr), 'ab') as f:
         with open('visibilities/visibilities_corr_%.2d.txt'%(corr,), 'ab') as f:
             np.savetxt(f, zip(u, v, w, nu, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
