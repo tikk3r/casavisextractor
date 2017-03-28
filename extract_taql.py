@@ -100,15 +100,15 @@ for i,j in baselines:
         sigma.append(std)
 
         # Save data to file.
-        FILEHEADER = 'Baseline: %d-%d\nSpectral Window: %d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (i, j, corr, nu.shape[0])
+        FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (i, j, corr, nu.shape[0])
         #with open('visibilities/baseline%.2d-%.2d_corr%.2d.txt'%(i,j,corr), 'ab') as f:
         with open('visibilities/visibilities.txt', 'ab') as f:
             np.savetxt(f, zip(u, v, w, nu, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
     # Write back errors and weights to the SIGMA and WEIGHT columns of the MS file.
     sigmas = np.asarray(sigma)
     weights = list(sigmas ** -2)
-    ct.taql('UPDATE $msfile SET SIGMA=$sigma')
-    ct.taql('UPDATE $msfile SET WEIGHT=$weights')
+    ct.taql('UPDATE $msfile SET SIGMA=$sigma WHERE ANTENNA1=$i AND ANTENNA2=$j')
+    ct.taql('UPDATE $msfile SET WEIGHT=$weights WHERE ANTENNA1=$i AND ANTENNA2=$j')
     progress += 1
 print '100%'
 
