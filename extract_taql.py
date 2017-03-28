@@ -62,6 +62,7 @@ except:
     pass
 
 for corr in range(correlations):
+    print 'Processing correlation %d/%d:' % (corr+1, correlations[0])
     # Select the spectral window keyword from the main table.
     spws = ct.taql('SELECT FROM %s::SPECTRAL_WINDOW'%(filename))
     # Frequencies corresponding to each channel.
@@ -70,6 +71,10 @@ for corr in range(correlations):
     # Calculate channel frequencies.
     nu = frequencies_flat_ghz
 
+    # Store odd and even sigmas separately temporarily in an array as [real, imaginary].
+    odd = []
+    even = []
+    
     progress = 0; end = len(baselines); printed = False
     for k,(i,j) in enumerate(baselines):
         p = int(progress / end * 100)
@@ -82,25 +87,52 @@ for corr in range(correlations):
         # Select wanted columns (possibly slightly redundant step).
         baseline = ct.taql('SELECT UVW,DATA FROM $msfile WHERE ANTENNA1=$i AND ANTENNA2=$j')
         data = baseline.getcol('DATA')
+        # uvw is an array with three values: the u, v and w coordinates.
         uvw = baseline.getcol('UVW')
-        # u,v,w coordinates for each baseline in meters.
+        # Split the u,v,w coordinates for each baseline in meters.
         u, v, w = uvw[...,0], uvw[...,1], uvw[...,2]
         # Select the correlation, specified by the last index.
+        # data has the shape (timestamps, channels, correlations).
         subdata = data[...,corr]
+        # subdata now has the shape (timestamps, channels)
         subdata = subdata.flatten()
+        # Take the real and imaginary parts of the data and handle them separately.
         data_real = subdata.real
         data_imag = subdata.imag
-        # Calculate standard deviation.
+        # Calculate standard deviations.
         stdr = data_real.std()
         stdi = data_imag.std()
+        # Because we have multiple channels, but only one standard deviation per spectral window we need to pad the array to match the length of the frequencies.
         std_real = np.zeros(len(nu)); std_real.fill(stdr)
         std_imag = np.zeros(len(nu)); std_imag.fill(stdi)
         # The MS file only has one sigma per correlation, so take the largest.
-        sigma = max(stdr, stdi)
+        sigma = max(stdr, stdi) 
 
-        # Save data to file.
-        FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (i, j, corr, nu.shape[0])
-        #with open('visibilities/baseline%.2d-%.2d_corr%.2d.txt'%(i,j,corr), 'ab') as f:
+        # Subtract every first visibility from the second, i.e. 2-1, 4-3, 6-5 etc.
+        # Since k starts at 0 we start with the even iterations.
+        if not k%2:
+            # Even iterations.
+            even = np.array([data_real, data_imag])
+        else:
+            # Odd iterations.
+            odd = np.array([data_real, data_imag])
+            # Subtract the second visibilities from the first.
+            subtracted =  odd - even
+            sub_real = subtracted[0]
+            sub_imag = subtracted[1]
+            # Calculate new standard deviations.
+            stds_real = sub_real.std()
+            stds_imag = sub_imag.std()
+            # Padd the arrays and write out to file.
+            std_sub_real = np.zeros(len(nu)); std_sub_real.fill(stds_real)
+            std_sub_imag = np.zeros(len(nu)); std_sub_imag.fill(stds_imag)
+            # The subtracted visibilities.
+            with open('visibilities/visibilities_corr_%.2d_subtracted.txt'%(corr,), 'ab') as f:
+                np.savetxt(f, zip(u, v, w, nu, sub_real, sub_imag, std_sub_real, std_sub_imag), header=FILEHEADER)
+
+        # Save data to files.
+        # The regular data.
+        FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (i, j, nu.shape[0])
         with open('visibilities/visibilities_corr_%.2d.txt'%(corr,), 'ab') as f:
             np.savetxt(f, zip(u, v, w, nu, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
         # Write back errors and weights to the SIGMA and WEIGHT columns of the MS file.
