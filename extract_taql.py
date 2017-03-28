@@ -127,7 +127,7 @@ for corr in range(correlations):
             std_sub_real = np.zeros(len(nu)); std_sub_real.fill(stds_real)
             std_sub_imag = np.zeros(len(nu)); std_sub_imag.fill(stds_imag)
             # The subtracted visibilities.
-            with open('visibilities/visibilities_corr_%.2d_subtracted.txt'%(corr,), 'ab') as f:
+            with open('visibilities/visibilities_subtracted_corr_%.2d.txt'%(corr,), 'ab') as f:
                 np.savetxt(f, zip(u, v, w, nu, sub_real, sub_imag, std_sub_real, std_sub_imag), header=FILEHEADER)
 
         # Save data to files.
