@@ -1,6 +1,16 @@
 # casavisextractor
 The CASA Visibility Extractor (CVE for short) will extract the real and imaginary parts of the visibilities with their corresponding errors from a Measurement Set to be used for further analysis.
 
+Usage
+=====
+To extract the visibilities run
+
+    python extract_taql.py observation.ms
+
+To plot the extracted data run
+
+    python plot_sigmas.py
+
 Functionality
 =============
 - The following data is extracted: u, v, w, channel frequency, real part, imaginary part, real error, imaginary error in the *visibilities* file. The *visibilities_subtracted* files contain the same data, except the visibilities were subtracted from each other as 2-1, 4-3, 6-5 etc. before calculating the uncertainties.
