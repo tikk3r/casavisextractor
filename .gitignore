@@ -1,4 +1,5 @@
 *.ms
 visbilities/
+visbilities/*
 *.swp
 *.png
