@@ -22,7 +22,7 @@ for i in range(correlations):
     ax4 = fig.add_subplot(224)
     ax4.hist(sigma_imag, bins=100)
     ax4.set_title('Imag $\\sigma$', fontweight='bold')
-    fig.savefig('visibilities_corr_%d.pdf'%i, dpi=400)
+    fig.savefig('./visibilities/visibilities_corr_%d.pdf'%i, dpi=400)
 
     # Load and plot the subtracted visibilities and their statistics.
     real, imag, sigma_real, sigma_imag = np.loadtxt('./visibilities/visibilities_subtracted_corr_%.2d.txt'%i, usecols=(4,5,6,7), unpack=True)
@@ -43,13 +43,13 @@ for i in range(correlations):
     ax4 = fig.add_subplot(224)
     ax4.hist(sigma_imag, bins=100)
     ax4.set_title('Imag $\\sigma$', fontweight='bold')
-    fig.savefig('visibilities_subtracted_corr_%d.pdf'%i, dpi=400)
+    fig.savefig('./visibilities/visibilities_subtracted_corr_%d.pdf'%i, dpi=400)
 #show()
 try: 
     print 'Attempting to create pdf files with pdfunite...'
     import subprocess
-    subprocess.call('pdfunite ./visibilities_corr_*.pdf visibilities.pdf', shell=True)
-    subprocess.call('pdfunite ./visibilities_subtracted_corr_*.pdf visibilities_subtracted.pdf', shell=True)
+    subprocess.call('pdfunite ./visibilities/visibilities_corr_*.pdf ./visibilities/visibilities.pdf', shell=True)
+    subprocess.call('pdfunite ./visibilities/visibilities_subtracted_corr_*.pdf ./visibilities/visibilities_subtracted.pdf', shell=True)
 except Exception as e:
     print e
     print 'PDF creation failed.'

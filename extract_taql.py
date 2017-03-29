@@ -72,7 +72,7 @@ for corr in range(correlations):
     nu = frequencies_flat_ghz
 
     progress = 0; end = len(baselines); printed = False
-    for k,(i,j) in enumerate(baselines):
+    for k,(ant1,ant2) in enumerate(baselines):
         p = int(progress / end * 100)
         if ((p % 10) == 0) and not printed:
             print '%d%%' % (p),
@@ -81,7 +81,7 @@ for corr in range(correlations):
             printed = False
         sys.stdout.flush()
         # Select wanted columns (possibly slightly redundant step).
-        baseline = ct.taql('SELECT UVW,DATA FROM $msfile WHERE ANTENNA1=$i AND ANTENNA2=$j')
+        baseline = ct.taql('SELECT UVW,DATA FROM $msfile WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
         data = baseline.getcol('DATA')
         # uvw is an array with three values: the u, v and w coordinates.
         uvw = baseline.getcol('UVW')
@@ -123,20 +123,20 @@ for corr in range(correlations):
         std_sub_real = np.zeros(len(nu)); std_sub_real.fill(stds_real)
         std_sub_imag = np.zeros(len(nu)); std_sub_imag.fill(stds_imag)
         # The subtracted visibilities.
-        FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (i, j, nu.shape[0])
+        FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (ant1, ant2, nu.shape[0])
         with open('visibilities/visibilities_subtracted_corr_%.2d.txt'%(corr,), 'ab') as f:
             np.savetxt(f, zip(u, v, w, nu, sub_real, sub_imag, std_sub_real, std_sub_imag), header=FILEHEADER)
         del sub_real
         del sub_imag
         # Save data to files.
         # The regular data.
-        FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (i, j, nu.shape[0])
+        FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (ant1, ant2, nu.shape[0])
         with open('visibilities/visibilities_corr_%.2d.txt'%(corr,), 'ab') as f:
             np.savetxt(f, zip(u, v, w, nu, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
         # Write back errors and weights to the SIGMA and WEIGHT columns of the MS file.
         weights = sigma ** -2
-        ct.taql('UPDATE $msfile SET SIGMA[$corr]=$sigma WHERE ANTENNA1=$i AND ANTENNA2=$j')
-        ct.taql('UPDATE $msfile SET WEIGHT[$corr]=$weights WHERE ANTENNA1=$i AND ANTENNA2=$j')
+        ct.taql('UPDATE $msfile SET SIGMA=$sigma WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
+        ct.taql('UPDATE $msfile SET WEIGHT[$corr]=$weights WHERE (ANTENNA1=$ant1 AND ANTENNA2=$ant2)')
         progress += 1
     print '100%\n'
 
