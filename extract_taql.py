@@ -103,7 +103,6 @@ for corr in range(correlations):
         std_imag = np.zeros(len(nu)); std_imag.fill(stdi)
         # The MS file only has one sigma per correlation, so take the largest.
         sigma = max(stdr, stdi) 
-        '''
         # Subtract every first visibility from the second, i.e. 2-1, 4-3, 6-5 etc.
         i = 0
         sub_real = []
@@ -128,7 +127,6 @@ for corr in range(correlations):
             np.savetxt(f, zip(u, v, w, nu, sub_real, sub_imag, std_sub_real, std_sub_imag), header=FILEHEADER)
         del sub_real
         del sub_imag
-        '''
         # Save data to files.
         # The regular data.
         FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (ant1, ant2, nu.shape[0])
