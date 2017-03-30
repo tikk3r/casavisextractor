@@ -135,7 +135,7 @@ for corr in range(correlations):
             np.savetxt(f, zip(u, v, w, nu, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
         # Write back errors and weights to the SIGMA and WEIGHT columns of the MS file.
         weights = sigma ** -2
-        ct.taql('UPDATE $msfile SET SIGMA=$sigma WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
+        ct.taql('UPDATE $msfile SET SIGMA[$corr]=$sigma WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
         ct.taql('UPDATE $msfile SET WEIGHT[$corr]=$weights WHERE (ANTENNA1=$ant1 AND ANTENNA2=$ant2)')
         progress += 1
     print '100%\n'
