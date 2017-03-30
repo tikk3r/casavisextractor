@@ -103,7 +103,7 @@ for corr in range(correlations):
         std_imag = np.zeros(len(nu)); std_imag.fill(stdi)
         # The MS file only has one sigma per correlation, so take the largest.
         sigma = max(stdr, stdi) 
-
+        '''
         # Subtract every first visibility from the second, i.e. 2-1, 4-3, 6-5 etc.
         i = 0
         sub_real = []
@@ -128,6 +128,7 @@ for corr in range(correlations):
             np.savetxt(f, zip(u, v, w, nu, sub_real, sub_imag, std_sub_real, std_sub_imag), header=FILEHEADER)
         del sub_real
         del sub_imag
+        '''
         # Save data to files.
         # The regular data.
         FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (ant1, ant2, nu.shape[0])
@@ -135,7 +136,7 @@ for corr in range(correlations):
             np.savetxt(f, zip(u, v, w, nu, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
         # Write back errors and weights to the SIGMA and WEIGHT columns of the MS file.
         weights = sigma ** -2
-        ct.taql('UPDATE $msfile SET SIGMA=$sigma WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
+        ct.taql('UPDATE $msfile SET SIGMA[$corr]=$sigma WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
         ct.taql('UPDATE $msfile SET WEIGHT[$corr]=$weights WHERE (ANTENNA1=$ant1 AND ANTENNA2=$ant2)')
         progress += 1
     print '100%\n'
