@@ -24,6 +24,8 @@ def form_baselines(antennas):
                 baselines.append((i,j))
     return baselines
 
+SUBTRACT = True
+
 '''
 Read in MS file and create table object.
 '''
@@ -103,30 +105,31 @@ for corr in range(correlations):
         std_imag = np.zeros(len(nu)); std_imag.fill(stdi)
         # The MS file only has one sigma per correlation, so take the largest.
         sigma = max(stdr, stdi) 
-        # Subtract every first visibility from the second, i.e. 2-1, 4-3, 6-5 etc.
-        i = 0
-        sub_real = []
-        sub_imag = []
-        while i < (len(data_real)//2 - 1):
-            subr = data_real[2*i+1] - data_real[2*i]
-            subi = data_imag[2*i+1] - data_imag[2*i]
-            sub_real.append(subr)
-            sub_imag.append(subi)
-            i += 1
-        sub_real = np.asarray(sub_real)
-        sub_imag = np.asarray(sub_imag)
-        # Calculate new standard deviations.
-        stds_real = sub_real.std()
-        stds_imag = sub_imag.std()
-        # Padd the arrays and write out to file.
-        std_sub_real = np.zeros(len(nu)); std_sub_real.fill(stds_real)
-        std_sub_imag = np.zeros(len(nu)); std_sub_imag.fill(stds_imag)
-        # The subtracted visibilities.
-        FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (ant1, ant2, nu.shape[0])
-        with open('visibilities/visibilities_subtracted_corr_%.2d.txt'%(corr,), 'ab') as f:
-            np.savetxt(f, zip(u, v, w, nu, sub_real, sub_imag, std_sub_real, std_sub_imag), header=FILEHEADER)
-        del sub_real
-        del sub_imag
+        if SUBTRACT:
+            # Subtract every first visibility from the second, i.e. 2-1, 4-3, 6-5 etc.
+            i = 0
+            sub_real = []
+            sub_imag = []
+            while i < (len(data_real)//2 - 1):
+                subr = data_real[2*i+1] - data_real[2*i]
+                subi = data_imag[2*i+1] - data_imag[2*i]
+                sub_real.append(subr)
+                sub_imag.append(subi)
+                i += 1
+            sub_real = np.asarray(sub_real)
+            sub_imag = np.asarray(sub_imag)
+            # Calculate new standard deviations with sqrt(2) correction.
+            stds_real = sub_real.std() / np.sqrt(2)
+            stds_imag = sub_imag.std() / np.sqrt(2)
+            # Padd the arrays and write out to file.
+            std_sub_real = np.zeros(len(nu)); std_sub_real.fill(stds_real)
+            std_sub_imag = np.zeros(len(nu)); std_sub_imag.fill(stds_imag)
+            # The subtracted visibilities.
+            FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (ant1, ant2, nu.shape[0])
+            with open('visibilities/visibilities_subtracted_corr_%.2d.txt'%(corr,), 'ab') as f:
+                np.savetxt(f, zip(u, v, w, nu, sub_real, sub_imag, std_sub_real, std_sub_imag), header=FILEHEADER)
+            del sub_real
+            del sub_imag
         # Save data to files.
         # The regular data.
         FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (ant1, ant2, nu.shape[0])
