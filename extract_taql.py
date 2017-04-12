@@ -1,8 +1,8 @@
 from __future__ import division
-import argparse
 from itertools import islice, imap
 from operator import itemgetter
 
+import argparse
 import casacore.tables as ct
 import numpy as np
 import math
@@ -27,26 +27,32 @@ def form_baselines(antennas):
 
 desc = '''Process the visibilities in an MS file in order to determine better estimates of the sigmas and weights for them.\nCASA assigns the same value to each baseline as 1  / sqrt(BW*T) whereas this script will estimate the sigmas for each baseline by looking at the scatter in the visibilities through time. The weights are then calculated as 1 / sigma**2.'''
 parser = argparse.ArgumentParser(description=desc)
+parser.add_argument('--backup', action='store_true', dest='backup', help='create a backup of the MS file before operating on it')
 parser.add_argument('--subtract', action='store_true', dest='subtract', help='calculate with the subtracted visibilities instead')
 parser.add_argument('filename', action='store')
 args = parser.parse_args()
 SUBTRACT = args.subtract
 filename = args.filename
+BACKUP = args.backup
 if SUBTRACT:
-    print '[MSERR] Using the subtracted visibilties to calculate sigmas and weights.'
+    print '[MaSER] Using the subtracted visibilties to calculate sigmas and weights.'
 else:
-    print '[MSERR] Using the regular visibilties to calculate sigmas and weights.'
+    print '[MaSER] Using the regular visibilties to calculate sigmas and weights.'
 
+if BACKUP:
+    print '[MaSER] Backing up MS file...'
+    subprocess.call('cp -r' + ' ' + filename + ' ' + filename + '.BACKUP', shell=True)
+    
 '''
 Read in MS file and create table object.
 '''
-print '[MSERR] Reading in file...'
+print '[MaSER] Reading in file...'
 msfile = ct.table(filename, readonly=False)
 
 '''
 Calculate the number of baselines present in the measurement set.
 '''
-print '[MSERR] Forming baselines...'
+print '[MaSER] Forming baselines...'
 ANTENNA1 = msfile.getcol('ANTENNA1')
 ANTENNA2 = msfile.getcol('ANTENNA2')
 
@@ -67,7 +73,7 @@ own file.
 The columns will have the uvw coordinates, channel frequency, real and imaginary parts of the
 visibilities and their corresponding errors.
 '''
-print '[MSERR] Extracting visibilities per baseline...'
+print '[MaSER] Extracting visibilities per baseline...'
 try:
     os.mkdir('visibilities')
 except:
@@ -154,6 +160,6 @@ for corr in range(correlations):
         progress += 1
     print '100%\n'
 
-print '[MSERR] Closing MS file...'
+print '[MaSER] Closing MS file...'
 msfile.close()
-print '[MSERR] Finished'
+print '[MaSER] Finished'
