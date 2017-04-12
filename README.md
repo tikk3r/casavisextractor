@@ -1,5 +1,5 @@
-# casavisextractor
-The CASA Visibility Extractor (CVE for short) will extract the real and imaginary parts of the visibilities with their corresponding errors from a Measurement Set to be used for further analysis.
+# Measurement Set Error Estimator
+The Measurement Set Error Estimator (MaSER for short) will extract the real and imaginary parts of the visibilities with their corresponding errors from a Measurement Set to be used for further analysis.
 
 Usage
 =====
