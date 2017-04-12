@@ -1,4 +1,5 @@
 from matplotlib.pyplot import figure, show
+import argparse
 import numpy as np
 
 correlations = 2

@@ -1,4 +1,5 @@
 from __future__ import division
+import argparse
 from itertools import islice, imap
 from operator import itemgetter
 
@@ -24,19 +25,28 @@ def form_baselines(antennas):
                 baselines.append((i,j))
     return baselines
 
-SUBTRACT = True
+desc = '''Process the visibilities in an MS file in order to determine better estimates of the sigmas and weights for them.\nCASA assigns the same value to each baseline as 1  / sqrt(BW*T) whereas this script will estimate the sigmas for each baseline by looking at the scatter in the visibilities through time. The weights are then calculated as 1 / sigma**2.'''
+parser = argparse.ArgumentParser(description=desc)
+parser.add_argument('--subtract', action='store_true', dest='subtract', help='calculate with the subtracted visibilities instead')
+parser.add_argument('filename', action='store')
+args = parser.parse_args()
+SUBTRACT = args.subtract
+filename = args.filename
+if SUBTRACT:
+    print '[MSERR] Using the subtracted visibilties to calculate sigmas and weights.'
+else:
+    print '[MSERR] Using the regular visibilties to calculate sigmas and weights.'
 
 '''
 Read in MS file and create table object.
 '''
-print '[CVE] Reading in file...'
-filename = sys.argv[1]#'TESTVIS.ms'
+print '[MSERR] Reading in file...'
 msfile = ct.table(filename, readonly=False)
 
 '''
 Calculate the number of baselines present in the measurement set.
 '''
-print '[CVE] Forming baselines...'
+print '[MSERR] Forming baselines...'
 ANTENNA1 = msfile.getcol('ANTENNA1')
 ANTENNA2 = msfile.getcol('ANTENNA2')
 
@@ -57,7 +67,7 @@ own file.
 The columns will have the uvw coordinates, channel frequency, real and imaginary parts of the
 visibilities and their corresponding errors.
 '''
-print '[CVE] Extracting visibilities per baseline...'
+print '[MSERR] Extracting visibilities per baseline...'
 try:
     os.mkdir('visibilities')
 except:
@@ -97,15 +107,23 @@ for corr in range(correlations):
         # Take the real and imaginary parts of the data and handle them separately.
         data_real = subdata.real
         data_imag = subdata.imag
-        # Calculate standard deviations.
-        stdr = data_real.std()
-        stdi = data_imag.std()
-        # Because we have multiple channels, but only one standard deviation per spectral window we need to pad the array to match the length of the frequencies.
-        std_real = np.zeros(len(nu)); std_real.fill(stdr)
-        std_imag = np.zeros(len(nu)); std_imag.fill(stdi)
-        # The MS file only has one sigma per correlation, so take the largest.
-        sigma = max(stdr, stdi) 
-        if SUBTRACT:
+        if not SUBTRACT:
+            # Calculate standard deviations.
+            stdr = data_real.std()
+            stdi = data_imag.std()
+            # Because we have multiple channels, but only one standard deviation per spectral window we need to pad the array to match the length of the frequencies.
+            std_real = np.zeros(len(nu)); std_real.fill(stdr)
+            std_imag = np.zeros(len(nu)); std_imag.fill(stdi)
+            # The MS file only has one sigma per correlation, so take the largest.
+            sigma = max(stdr, stdi) 
+            # Save data to file.
+            FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (ant1, ant2, nu.shape[0])
+            with open('visibilities/visibilities_corr_%.2d.txt'%(corr,), 'ab') as f:
+                np.savetxt(f, zip(u, v, w, nu, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
+            weights = sigma ** -2
+            ct.taql('UPDATE $msfile SET SIGMA[$corr]=$sigma WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
+            ct.taql('UPDATE $msfile SET WEIGHT[$corr]=$weights WHERE (ANTENNA1=$ant1 AND ANTENNA2=$ant2)')
+        elif SUBTRACT:
             # Subtract every first visibility from the second, i.e. 2-1, 4-3, 6-5 etc.
             i = 0
             sub_real = []
@@ -124,24 +142,18 @@ for corr in range(correlations):
             # Padd the arrays and write out to file.
             std_sub_real = np.zeros(len(nu)); std_sub_real.fill(stds_real)
             std_sub_imag = np.zeros(len(nu)); std_sub_imag.fill(stds_imag)
+            sigma_sub = max(stds_real, stds_imag)
             # The subtracted visibilities.
             FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (ant1, ant2, nu.shape[0])
             with open('visibilities/visibilities_subtracted_corr_%.2d.txt'%(corr,), 'ab') as f:
                 np.savetxt(f, zip(u, v, w, nu, sub_real, sub_imag, std_sub_real, std_sub_imag), header=FILEHEADER)
-            del sub_real
-            del sub_imag
-        # Save data to files.
-        # The regular data.
-        FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (ant1, ant2, nu.shape[0])
-        with open('visibilities/visibilities_corr_%.2d.txt'%(corr,), 'ab') as f:
-            np.savetxt(f, zip(u, v, w, nu, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
-        # Write back errors and weights to the SIGMA and WEIGHT columns of the MS file.
-        weights = sigma ** -2
-        ct.taql('UPDATE $msfile SET SIGMA[$corr]=$sigma WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
-        ct.taql('UPDATE $msfile SET WEIGHT[$corr]=$weights WHERE (ANTENNA1=$ant1 AND ANTENNA2=$ant2)')
+            # Write back errors and weights to the SIGMA and WEIGHT columns of the MS file.
+            weights = sigma_sub ** -2
+            ct.taql('UPDATE $msfile SET SIGMA[$corr]=$sigma_sub WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
+            ct.taql('UPDATE $msfile SET WEIGHT[$corr]=$weights WHERE (ANTENNA1=$ant1 AND ANTENNA2=$ant2)')
         progress += 1
     print '100%\n'
 
-print '[CVE] Closing MS file...'
+print '[MSERR] Closing MS file...'
 msfile.close()
-print '[CVE] Finished'
+print '[MSERR] Finished'
