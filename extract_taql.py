@@ -42,7 +42,7 @@ else:
 if BACKUP:
     print '[MaSER] Backing up MS file...'
     subprocess.call('cp -r' + ' ' + filename + ' ' + filename + '.BACKUP', shell=True)
-    
+
 '''
 Read in MS file and create table object.
 '''
@@ -58,6 +58,11 @@ ANTENNA2 = msfile.getcol('ANTENNA2')
 
 ANTENNAS = set(ANTENNA1).union(set(ANTENNA2))
 baselines = form_baselines(ANTENNAS)
+
+print len(ANTENNA1)
+print len(ANTENNA2)
+print len(baselines)
+
 print 'Formed %d baselines.' % len(baselines)
 
 # Determine the number of correlations present.
@@ -83,11 +88,14 @@ for corr in range(correlations):
     print 'Processing correlation %d/%d:' % (corr+1, correlations[0])
     # Select the spectral window keyword from the main table.
     spws = ct.taql('SELECT FROM %s::SPECTRAL_WINDOW'%(filename))
+    Nspw = len(spws)
     # Frequencies corresponding to each channel.
     frequencies = spws.getcol('CHAN_FREQ')
     frequencies_flat_ghz = frequencies.flatten() * 1e-9
     # Calculate channel frequencies.
     nu = frequencies_flat_ghz
+    # Determine channels in a spectral window
+    Nchan = len(nu) // Nspw
 
     progress = 0; end = len(baselines); printed = False
     for k,(ant1,ant2) in enumerate(baselines):
@@ -104,28 +112,41 @@ for corr in range(correlations):
         # uvw is an array with three values: the u, v and w coordinates.
         uvw = baseline.getcol('UVW')
         # Split the u,v,w coordinates for each baseline in meters.
-        u, v, w = uvw[...,0], uvw[...,1], uvw[...,2]
+        uu, vv, ww = uvw[...,0], uvw[...,1], uvw[...,2]
+        u = np.asarray([i for i in uu for x in xrange(Nchan)])
+        v = np.asarray([i for i in vv for x in xrange(Nchan)])
+        w = np.asarray([i for i in ww for x in xrange(Nchan)])
+
         # Select the correlation, specified by the last index.
-        # data has the shape (timestamps, channels, correlations).
+        # data has the shape (timestamps, channels, correlations) where timestamps repeats after each spectral window.
         subdata = data[...,corr]
-        # subdata now has the shape (timestamps, channels)
+        # Flatten data into subdata changing the shape from (timestamps, channels) to (timestamps*channels)
         subdata = subdata.flatten()
         # Take the real and imaginary parts of the data and handle them separately.
         data_real = subdata.real
         data_imag = subdata.imag
+
         if not SUBTRACT:
             # Calculate standard deviations.
             stdr = data_real.std()
             stdi = data_imag.std()
             # Because we have multiple channels, but only one standard deviation per spectral window we need to pad the array to match the length of the frequencies.
-            std_real = np.zeros(len(nu)); std_real.fill(stdr)
-            std_imag = np.zeros(len(nu)); std_imag.fill(stdi)
+            std_real = np.zeros(len(data_real)); std_real.fill(stdr)
+            std_imag = np.zeros(len(data_real)); std_imag.fill(stdi)
             # The MS file only has one sigma per correlation, so take the largest.
-            sigma = max(stdr, stdi) 
+            sigma = max(stdr, stdi)
+            # We need correct frequencies written out for the uv coordinates. Here we determine when we should switchs to a new spw.
+            Nswitch = (len(uu) // Nspw)
+            freq = []
+            for i in range(Nspw):
+                f = list(nu[Nchan * i:Nchan * (i+1)]) * Nswitch
+                freq.extend(f)
+            freq = np.asarray(freq)
             # Save data to file.
-            FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (ant1, ant2, nu.shape[0])
+            #print len(u), len(v), len(w), len(data_real), len(data_imag), len(std_real), len(std_imag), len(freq)
+            FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (ant1, ant2, len(data_real))
             with open('visibilities/visibilities_corr_%.2d.txt'%(corr,), 'ab') as f:
-                np.savetxt(f, zip(u, v, w, nu, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
+                np.savetxt(f, zip(u, v, w, freq, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
             weights = sigma ** -2
             ct.taql('UPDATE $msfile SET SIGMA[$corr]=$sigma WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
             ct.taql('UPDATE $msfile SET WEIGHT[$corr]=$weights WHERE (ANTENNA1=$ant1 AND ANTENNA2=$ant2)')

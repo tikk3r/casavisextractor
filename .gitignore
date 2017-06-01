@@ -3,3 +3,6 @@ visbilities/
 visbilities/*
 *.swp
 *.png
+BUG\ SQUASHING
+*.log
+*.last
