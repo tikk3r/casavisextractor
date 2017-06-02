@@ -28,12 +28,14 @@ def form_baselines(antennas):
 desc = '''Process the visibilities in an MS file in order to determine better estimates of the sigmas and weights for them.\nCASA assigns the same value to each baseline as 1  / sqrt(BW*T) whereas this script will estimate the sigmas for each baseline by looking at the scatter in the visibilities through time. The weights are then calculated as 1 / sigma**2.'''
 parser = argparse.ArgumentParser(description=desc)
 parser.add_argument('--backup', action='store_true', dest='backup', help='create a backup of the MS file before operating on it')
-parser.add_argument('--subtract', action='store_true', dest='subtract', help='calculate with the subtracted visibilities instead')
+#parser.add_argument('--subtract', action='store_true', dest='subtract', help='calculate with the subtracted visibilities instead')
+parser.add_argument('--hdf5', action='store_true', dest='use_hdf5', help='write out a Pandas dataframe in HDF5 format instead of a txt file'
 parser.add_argument('filename', action='store')
 args = parser.parse_args()
-SUBTRACT = args.subtract
+#SUBTRACT = args.subtract
 filename = args.filename
 BACKUP = args.backup
+HDF5 = args.use_hdf5
 if SUBTRACT:
     print '[MaSER] Using the subtracted visibilties to calculate sigmas and weights.'
 else:
@@ -42,6 +44,8 @@ else:
 if BACKUP:
     print '[MaSER] Backing up MS file...'
     subprocess.call('cp -r' + ' ' + filename + ' ' + filename + '.BACKUP', shell=True)
+if HDF5:
+    import pandas as pd
 
 '''
 Read in MS file and create table object.
@@ -85,6 +89,8 @@ except:
     pass
 
 for corr in range(correlations):
+    if HDF5:
+        df = None
     print 'Processing correlation %d/%d:' % (corr+1, correlations[0])
     # Select the spectral window keyword from the main table.
     spws = ct.taql('SELECT FROM %s::SPECTRAL_WINDOW'%(filename))
@@ -144,9 +150,16 @@ for corr in range(correlations):
             freq = np.asarray(freq)
             # Save data to file.
             #print len(u), len(v), len(w), len(data_real), len(data_imag), len(std_real), len(std_imag), len(freq)
-            FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (ant1, ant2, len(data_real))
-            with open('visibilities/visibilities_corr_%.2d.txt'%(corr,), 'ab') as f:
-                np.savetxt(f, zip(u, v, w, freq, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
+            if not HDF5:
+                FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (ant1, ant2, len(data_real))
+                with open('visibilities/visibilities_corr_%.2d.txt'%(corr,), 'ab') as f:
+                    np.savetxt(f, zip(u, v, w, freq, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
+            else:
+                try:
+                    tdf = pd.DataFrame(zip(u, v, w, freq, data_real, data_imag, std_real, std_imag), columns=['u', 'v', 'w', 'freq', 'data_real', 'data_imag', 'sigma_real', 'sigma_imag'])
+                    df = df.append(tdf, ignore_index=True)
+                except:
+                    df = pd.DataFrame(zip(u, v, w, freq, data_real, data_imag, std_real, std_imag), columns=['u', 'v', 'w', 'freq', 'data_real', 'data_imag', 'sigma_real', 'sigma_imag'])
             weights = sigma ** -2
             ct.taql('UPDATE $msfile SET SIGMA[$corr]=$sigma WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
             ct.taql('UPDATE $msfile SET WEIGHT[$corr]=$weights WHERE (ANTENNA1=$ant1 AND ANTENNA2=$ant2)')
@@ -179,6 +192,8 @@ for corr in range(correlations):
             ct.taql('UPDATE $msfile SET SIGMA[$corr]=$sigma_sub WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
             ct.taql('UPDATE $msfile SET WEIGHT[$corr]=$weights WHERE (ANTENNA1=$ant1 AND ANTENNA2=$ant2)')
         progress += 1
+    if HDF5:
+        df.to_hdf('./visibilities/vis_corr_%.2d.hdf5'%corr, 'df', mode='w', format='table', data_columns=True)
     print '100%\n'
 
 print '[MaSER] Closing MS file...'
