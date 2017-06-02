@@ -29,7 +29,7 @@ desc = '''Process the visibilities in an MS file in order to determine better es
 parser = argparse.ArgumentParser(description=desc)
 parser.add_argument('--backup', action='store_true', dest='backup', help='create a backup of the MS file before operating on it')
 #parser.add_argument('--subtract', action='store_true', dest='subtract', help='calculate with the subtracted visibilities instead')
-parser.add_argument('--hdf5', action='store_true', dest='use_hdf5', help='write out a Pandas dataframe in HDF5 format instead of a txt file'
+parser.add_argument('--hdf5', action='store_true', dest='use_hdf5', help='write out a Pandas dataframe in HDF5 format instead of a txt file')
 parser.add_argument('filename', action='store')
 args = parser.parse_args()
 #SUBTRACT = args.subtract
