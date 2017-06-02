@@ -28,11 +28,11 @@ def form_baselines(antennas):
 desc = '''Process the visibilities in an MS file in order to determine better estimates of the sigmas and weights for them.\nCASA assigns the same value to each baseline as 1  / sqrt(BW*T) whereas this script will estimate the sigmas for each baseline by looking at the scatter in the visibilities through time. The weights are then calculated as 1 / sigma**2.'''
 parser = argparse.ArgumentParser(description=desc)
 parser.add_argument('--backup', action='store_true', dest='backup', help='create a backup of the MS file before operating on it')
-#parser.add_argument('--subtract', action='store_true', dest='subtract', help='calculate with the subtracted visibilities instead')
+parser.add_argument('--subtract', action='store_true', dest='subtract', help='calculate with the subtracted visibilities instead')
 parser.add_argument('--hdf5', action='store_true', dest='use_hdf5', help='write out a Pandas dataframe in HDF5 format instead of a txt file')
 parser.add_argument('filename', action='store')
 args = parser.parse_args()
-#SUBTRACT = args.subtract
+SUBTRACT = args.subtract
 filename = args.filename
 BACKUP = args.backup
 HDF5 = args.use_hdf5
