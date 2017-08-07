@@ -164,29 +164,29 @@ for corr in range(correlations):
             ct.taql('UPDATE $msfile SET SIGMA[$corr]=$sigma WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
             ct.taql('UPDATE $msfile SET WEIGHT[$corr]=$weights WHERE (ANTENNA1=$ant1 AND ANTENNA2=$ant2)')
         elif SUBTRACT:
-            # Subtract every first visibility from the second, i.e. 2-1, 4-3, 6-5 etc.
-            i = 0
-            sub_real = []
-            sub_imag = []
-            while i < (len(data_real)//2 - 1):
-                subr = data_real[2*i+1] - data_real[2*i]
-                subi = data_imag[2*i+1] - data_imag[2*i]
-                sub_real.append(subr)
-                sub_imag.append(subi)
-                i += 1
-            sub_real = np.asarray(sub_real)
-            sub_imag = np.asarray(sub_imag)
+            real_shifted = np.roll(data_real, -1)
+            imag_shifted = np.roll(data_imag, -1)
+            sub_real = real_shifted - data_real
+            sub_imag = imag_shifted - data_imag
             # Calculate new standard deviations with sqrt(2) correction.
-            stds_real = sub_real.std() / np.sqrt(2)
-            stds_imag = sub_imag.std() / np.sqrt(2)
-            # Padd the arrays and write out to file.
-            std_sub_real = np.zeros(len(nu)); std_sub_real.fill(stds_real)
-            std_sub_imag = np.zeros(len(nu)); std_sub_imag.fill(stds_imag)
-            sigma_sub = max(stds_real, stds_imag)
+            stdr = sub_real.std() / np.sqrt(2)
+            stdi = sub_imag.std() / np.sqrt(2)
+            # Because we have multiple channels, but only one standard deviation per spectral window we need to pad the array to match the length of the frequencies.
+            std_real = np.zeros(len(data_real)); std_real.fill(stdr)
+            std_imag = np.zeros(len(data_real)); std_imag.fill(stdi)
+            # The MS file only has one sigma per correlation, so take the largest.
+            sigma_sub = max(stdr, stdi)
+            # We need correct frequencies written out for the uv coordinates. Here we determine when we should switchs to a new spw.
+            Nswitch = (len(uu) // Nspw)
+            freq = []
+            for i in range(Nspw):
+                f = list(nu[Nchan * i:Nchan * (i+1)]) * Nswitch
+                freq.extend(f)
+            freq = np.asarray(freq)
             # The subtracted visibilities.
             FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (ant1, ant2, nu.shape[0])
             with open('visibilities/visibilities_subtracted_corr_%.2d.txt'%(corr,), 'ab') as f:
-                np.savetxt(f, zip(u, v, w, nu, sub_real, sub_imag, std_sub_real, std_sub_imag), header=FILEHEADER)
+                np.savetxt(f, zip(u, v, w, freq, sub_real, sub_imag, std_real, std_imag), header=FILEHEADER)
             # Write back errors and weights to the SIGMA and WEIGHT columns of the MS file.
             weights = sigma_sub ** -2
             ct.taql('UPDATE $msfile SET SIGMA[$corr]=$sigma_sub WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
