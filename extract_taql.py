@@ -163,7 +163,7 @@ for corr in range(correlations):
             weights = sigma ** -2
             ct.taql('UPDATE $msfile SET SIGMA[$corr]=$sigma WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
             ct.taql('UPDATE $msfile SET WEIGHT[$corr]=$weights WHERE (ANTENNA1=$ant1 AND ANTENNA2=$ant2)')
-            ct.taql('UPDATE $msfile SET WEIGHT_SPECTRUM[$corr]=$weights WHERE (ANTENNA1=$ant1 AND ANTENNA2=$ant2)')
+            #ct.taql('UPDATE $msfile SET WEIGHT_SPECTRUM[$corr]=$weights WHERE (ANTENNA1=$ant1 AND ANTENNA2=$ant2)')
         elif SUBTRACT:
             real_shifted = np.roll(data_real, -1)
             imag_shifted = np.roll(data_imag, -1)
@@ -200,8 +200,7 @@ for corr in range(correlations):
             test =  np.zeros(2)
             ct.taql('UPDATE $msfile SET SIGMA[$corr]=$sigma_sub WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
             ct.taql('UPDATE $msfile SET WEIGHT[$corr]=$weights WHERE (ANTENNA1=$ant1 AND ANTENNA2=$ant2)')
-            ct.taql('UPDATE $msfile SET WEIGHT_SPECTRUM=1')
-            ct.taql('UPDATE $msfile SET WEIGHT_SPECTRUM[$corr]=$weights WHERE (ANTENNA1=$ant1 AND ANTENNA2=$ant2)')
+            #ct.taql('UPDATE $msfile SET WEIGHT_SPECTRUM[$corr]=$weights WHERE (ANTENNA1=$ant1 AND ANTENNA2=$ant2)')
         progress += 1
     if HDF5 and not SUBTRACT:
         df.to_hdf('./visibilities/vis_corr_%.2d.hdf5'%corr, 'df', mode='w', format='table', data_columns=True)
