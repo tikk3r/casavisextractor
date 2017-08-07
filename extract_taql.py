@@ -187,13 +187,13 @@ for corr in range(correlations):
             if not HDF5:
                 FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (ant1, ant2, len(data_real))
                 with open('visibilities/visibilities_subtracted_corr_%.2d.txt'%(corr,), 'ab') as f:
-                    np.savetxt(f, zip(u, v, w, freq, sub_real, sub_imag, std_real, std_imag), header=FILEHEADER)
+                    np.savetxt(f, zip(u, v, w, freq, data_real, data_imag, std_real, std_imag), header=FILEHEADER)
             else:
                 try:
-                    tdf = pd.DataFrame(zip(u, v, w, freq, sub_real, sub_imag, std_real, std_imag), columns=['u', 'v', 'w', 'freq', 'data_real', 'data_imag', 'sigma_real', 'sigma_imag'])
+                    tdf = pd.DataFrame(zip(u, v, w, freq, data_real, data_imag, std_real, std_imag), columns=['u', 'v', 'w', 'freq', 'data_real', 'data_imag', 'sigma_real', 'sigma_imag'])
                     df = df.append(tdf, ignore_index=True)
                 except:
-                    df = pd.DataFrame(zip(u, v, w, freq, sub_real, sub_imag, std_real, std_imag), columns=['u', 'v', 'w', 'freq', 'data_real', 'data_imag', 'sigma_real', 'sigma_imag'])
+                    df = pd.DataFrame(zip(u, v, w, freq, data_real, data_imag, std_real, std_imag), columns=['u', 'v', 'w', 'freq', 'data_real', 'data_imag', 'sigma_real', 'sigma_imag'])
             # Write back errors and weights to the SIGMA and WEIGHT columns of the MS file.
             weights = sigma_sub ** -2
             ct.taql('UPDATE $msfile SET SIGMA[$corr]=$sigma_sub WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
