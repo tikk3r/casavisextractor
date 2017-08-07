@@ -1,7 +1,7 @@
 # Measurement Set Error Estimator
 The Measurement Set Error Estimator (MaSER for short) will extract the real and imaginary parts of the visibilities from a Measurement Set and calculates their corresponding errors to be used for further analysis. Errors are estimated for the real and imaginary parts separately, but as there is only one value stored for each correlation the largest of the two is written back to the MS file.
 
-This script modifies two columns in the MS file: the _SIGMA_ and _WEIGHT_ columns. The sigmas are estimated from the visibilities and the weights are determined as 1 / sigma\*\*2.
+This script modifies three columns in the MS file: the _SIGMA_, _WEIGHT_ and _WEIGHT_SPECTRUM_ columns. The sigmas are estimated from the visibilities and the weights are determined as 1 / sigma\*\*2.
 
 Usage
 =====
