@@ -170,8 +170,8 @@ for corr in range(correlations):
             sub_real = real_shifted - data_real
             sub_imag = imag_shifted - data_imag
             # Calculate new standard deviations with sqrt(2) correction, as the number of visibilities goes down by a factor 2.
-            stdr = sub_real.std() * np.sqrt(2)
-            stdi = sub_imag.std() * np.sqrt(2)
+            stdr = sub_real.std() / np.sqrt(2)
+            stdi = sub_imag.std() / np.sqrt(2)
             # Because we have multiple channels, but only one standard deviation per spectral window we need to pad the array to match the length of the frequencies.
             std_real = np.zeros(len(data_real)); std_real.fill(stdr)
             std_imag = np.zeros(len(data_real)); std_imag.fill(stdi)
