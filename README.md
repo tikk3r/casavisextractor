@@ -11,18 +11,14 @@ To estimate errors and weights in the visibilities run
 
 Optional flags that can be passed along are:
 
-    --subtract: operate on pairwise-subtracted visibilities instead of the raw visibilities. That is instead of using visibilities 1, 2, 3, 4, 5, 6, ... to determine the errors, 2-1, 4-3, 6-5, ... etc. are used.
+    --subtract: operate on pairwise-subtracted visibilities instead of the raw visibilities. That is instead of using visibilities 1, 2, 3, 4, 5, 6, ... to determine the errors, 1-2, 2-3, 3-4, ... etc. are used. This also writes out the subtracted visibilities.
     --backup: make a backup of the input measurement set before operating on it. This will be stored as observation.ms.BACKUP.
-
-To plot the extracted data run
-
-    python plot_sigmas.py
+    --hdf5: experimental feature to store the data in the HDF5 file format instead of plain text. This results in much faster I/O.
 
 Functionality
 =============
-- The following data is extracted: u, v, w, channel frequency, real part, imaginary part, real error, imaginary error in the *visibilities* file. The *visibilities_subtracted* files contain the same data, except the visibilities were subtracted from each other as 2-1, 4-3, 6-5 etc. before calculating the uncertainties.
+- The following data is extracted: u, v, w, channel frequency, real part, imaginary part, real error, imaginary error in the *visibilities* file. The *visibilities_subtracted* files contain the same data, except the visibilities were subtracted from each other as 1-2, 2-3, 3-4 etc. before calculating the uncertainties.
 - Visibilities are stored in txt files with separate files per correlation. The data themselves are sorted by frequency on a per baseline basis.
-- Histograms of the visibilities and the errors can be plotted.
 
 Requirements
 ============
@@ -33,7 +29,3 @@ extract_taql.py
 - [casacore](https://github.com/casacore/casacore)
 - [python-casacore](https://github.com/casacore/python-casacore)
 - numpy
-
-plot_sigmas.py
---------------
-- matplotlib

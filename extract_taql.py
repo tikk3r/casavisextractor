@@ -184,16 +184,25 @@ for corr in range(correlations):
                 freq.extend(f)
             freq = np.asarray(freq)
             # The subtracted visibilities.
-            FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (ant1, ant2, nu.shape[0])
-            with open('visibilities/visibilities_subtracted_corr_%.2d.txt'%(corr,), 'ab') as f:
-                np.savetxt(f, zip(u, v, w, freq, sub_real, sub_imag, std_real, std_imag), header=FILEHEADER)
+            if not HDF5:
+                FILEHEADER = 'Baseline: %d-%d\nEntries: %d\nu [m], v [m], w [m], frequency [GHz], real, imag, std(real), std(imag)' % (ant1, ant2, len(data_real))
+                with open('visibilities/visibilities_subtracted_corr_%.2d.txt'%(corr,), 'ab') as f:
+                    np.savetxt(f, zip(u, v, w, freq, sub_real, sub_imag, std_real, std_imag), header=FILEHEADER)
+            else:
+                try:
+                    tdf = pd.DataFrame(zip(u, v, w, freq, sub_real, sub_imag, std_real, std_imag), columns=['u', 'v', 'w', 'freq', 'data_real', 'data_imag', 'sigma_real', 'sigma_imag'])
+                    df = df.append(tdf, ignore_index=True)
+                except:
+                    df = pd.DataFrame(zip(u, v, w, freq, sub_real, sub_imag, std_real, std_imag), columns=['u', 'v', 'w', 'freq', 'data_real', 'data_imag', 'sigma_real', 'sigma_imag'])
             # Write back errors and weights to the SIGMA and WEIGHT columns of the MS file.
             weights = sigma_sub ** -2
             ct.taql('UPDATE $msfile SET SIGMA[$corr]=$sigma_sub WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
             ct.taql('UPDATE $msfile SET WEIGHT[$corr]=$weights WHERE (ANTENNA1=$ant1 AND ANTENNA2=$ant2)')
         progress += 1
-    if HDF5:
+    if HDF5 and not SUBTRACT:
         df.to_hdf('./visibilities/vis_corr_%.2d.hdf5'%corr, 'df', mode='w', format='table', data_columns=True)
+    elif HDF5 and SUBTRACT:
+        df.to_hdf('./visibilities/vis_subtracted_corr_%.2d.hdf5'%corr, 'df', mode='w', format='table', data_columns=True)
     print '100%\n'
 
 print '[MaSER] Closing MS file...'
