@@ -88,7 +88,7 @@ try:
 except:
     pass
 
-for corr in range(correlations):
+for corr in range(correlations[0]):
     if HDF5:
         df = None
     print 'Processing correlation %d/%d:' % (corr+1, correlations[0])
@@ -113,7 +113,12 @@ for corr in range(correlations):
             printed = False
         sys.stdout.flush()
         # Select wanted columns (possibly slightly redundant step).
-        baseline = ct.taql('SELECT UVW,DATA FROM $msfile WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
+        try:
+            baseline = ct.taql('SELECT UVW,DATA FROM $msfile WHERE ANTENNA1=$ant1 AND ANTENNA2=$ant2')
+        except:
+            # Baseline is not found.
+            print('Baseline {ant1}-{ant2} not found; skipping.'.format(ant1=ant1, ant2=ant2))
+            continue
         data = baseline.getcol('DATA')
         # uvw is an array with three values: the u, v and w coordinates.
         uvw = baseline.getcol('UVW')
